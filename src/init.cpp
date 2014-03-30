@@ -2,14 +2,29 @@
 // Copyright (c) 2009-2012 The Bitcoin developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
-#include "db.h"
-#include "walletdb.h"
-#include "bitcoinrpc.h"
-#include "net.h"
-#include "init.h"
-#include "util.h"
-#include "ui_interface.h"
-#include "checkpoints.h"
+
+#ifdef _MSC_VER
+    #include <stdint.h>
+    
+    #include "db.h"
+    #include "walletdb.h"
+    #include "bitcoinrpc.h"
+    //#include "net.h"
+    #include "init.h"
+    //#include "util.h"
+    //#include "ui_interface.h"
+    #include "checkpoints.h"
+#else
+    #include "db.h"
+    #include "walletdb.h"
+    #include "bitcoinrpc.h"
+    #include "net.h"
+    #include "init.h"
+    #include "util.h"
+    #include "ui_interface.h"
+    #include "checkpoints.h"
+#endif
+
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -19,6 +34,15 @@
 
 #ifndef WIN32
 #include <signal.h>
+#endif
+
+#ifdef _MSC_VER
+    #pragma warning( push )
+    #pragma warning( disable: 4267 )
+    #pragma warning( disable: 4244 )
+    #pragma warning( disable: 4390 )
+    #pragma warning( disable: 4800 )
+    #pragma warning( disable: 4996 )
 #endif
 
 using namespace std;
@@ -35,8 +59,15 @@ CClientUIInterface uiInterface;
 void ExitTimeout(void* parg)
 {
 #ifdef WIN32
-    Sleep(5000);
-    ExitProcess(0);
+    #ifdef _MSC_VER
+        kill_CNetCleanup_now(); //we need a StopRPCThreads(); // ala later versions of bitcoin
+        printf("YACoin exited\n\n");
+        ExitProcess(0);
+        //Exit();
+    #else
+        Sleep(5000);
+        ExitProcess(0);
+    #endif
 #endif
 }
 
@@ -50,16 +81,22 @@ void StartShutdown()
     NewThread(Shutdown, NULL);
 #endif
 }
+//extern CNetCleanup instance_of_cnetcleanup;
 
 void Shutdown(void* parg)
 {
-    static CCriticalSection cs_Shutdown;
-    static bool fTaken;
+    static CCriticalSection 
+        cs_Shutdown;
+
+    static bool 
+        fTaken;
 
     // Make this thread recognisable as the shutdown thread
     RenameThread("bitcoin-shutoff");
 
-    bool fFirstThread = false;
+    bool 
+        fFirstThread = false;
+
     {
         TRY_LOCK(cs_Shutdown, lockShutdown);
         if (lockShutdown)
@@ -68,7 +105,9 @@ void Shutdown(void* parg)
             fTaken = true;
         }
     }
-    static bool fExit;
+    static bool 
+        fExit;
+
     if (fFirstThread)
     {
         fShutdown = true;
@@ -84,8 +123,14 @@ void Shutdown(void* parg)
         printf("YACoin exited\n\n");
         fExit = true;
 #ifndef QT_GUI
-        // ensure non-UI client gets exited here, but let yacoin-qt reach 'return 0;' in bitcoin.cpp
+    #ifdef _MSC_VER
+        // just wait
+        while( true )
+            Sleep( 1000 );
+    #else
+        // ensure non-UI client gets exited here, but let Bitcoin-Qt reach 'return 0;' in bitcoin.cpp
         exit(0);
+    #endif
 #endif
     }
     else
@@ -135,7 +180,7 @@ bool AppInit(int argc, char* argv[])
 
         if (mapArgs.count("-?") || mapArgs.count("--h") || mapArgs.count("--help"))
         {
-            // First part of help message is specific to yacoind / RPC client
+            // First part of help message is specific to bitcoind / RPC client
             std::string strUsage = _("YACoin version") + " " + FormatFullVersion() + "\n\n" +
                 _("Usage:") + "\n" +
                   "  yacoind [options]                     " + "\n" +
@@ -157,7 +202,12 @@ bool AppInit(int argc, char* argv[])
         if (fCommandLine)
         {
             int ret = CommandLineRPC(argc, argv);
+#ifdef _MSC_VER
+            Shutdown(NULL);
+            //return false;
+#else
             exit(ret);
+#endif
         }
 
         fRet = AppInit2();
@@ -177,7 +227,7 @@ int main(int argc, char* argv[])
 {
     bool fRet = false;
 
-    // Connect yacoind signal handlers
+    // Connect bitcoind signal handlers
     noui_connect();
 
     fRet = AppInit(argc, argv);
@@ -478,11 +528,22 @@ bool AppInit2()
         ShrinkDebugFile();
     printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     printf("YACoin version %s (%s)\n", FormatFullVersion().c_str(), CLIENT_DATE.c_str());
+#ifdef _MSC_VER
+    printf("\n");
+#endif
     printf("Using OpenSSL version %s\n", SSLeay_version(SSLEAY_VERSION));
     if (!fLogTimestamps)
         printf("Startup time: %s\n", DateTimeStrFormat("%x %H:%M:%S", GetTime()).c_str());
+#ifdef _MSC_VER
+    printf("\nDefault data directory \n%s\n", GetDefaultDataDir().string().c_str());
+#else
     printf("Default data directory %s\n", GetDefaultDataDir().string().c_str());
+#endif
+#ifdef _MSC_VER
+    printf("\nUsed data directory \n%s\n", strDataDir.c_str());
+#else
     printf("Used data directory %s\n", strDataDir.c_str());
+#endif
     std::ostringstream strErrors;
 
     if (fDaemon)
@@ -669,13 +730,17 @@ bool AppInit2()
     }
 
     uiInterface.InitMessage(_("<b>Loading block index, this may take several minutes...</b>"));
+#ifdef _MSC_VER
+    printf("\nLoading block index, this may take several minutes...\n");
+#else
     printf("Loading block index, this may take several minutes...\n");
+#endif
     nStart = GetTimeMillis();
     if (!LoadBlockIndex())
         return InitError(_("Error loading blkindex.dat"));
 
     // as LoadBlockIndex can take several minutes, it's possible the user
-    // requested to kill yacoin-qt during the last operation. If so, exit.
+    // requested to kill bitcoin-qt during the last operation. If so, exit.
     // As the program has not fully started yet, Shutdown() is possibly overkill.
     if (fRequestShutdown)
     {
@@ -716,7 +781,11 @@ bool AppInit2()
     // ********************************************************* Step 8: load wallet
 
     uiInterface.InitMessage(_("<b>Loading wallet...</b>"));
+#ifdef _MSC_VER
+    printf("\nLoading wallet...\n");
+#else
     printf("Loading wallet...\n");
+#endif
     nStart = GetTimeMillis();
     bool fFirstRun = true;
     pwalletMain = new CWallet("wallet.dat");
@@ -825,7 +894,11 @@ bool AppInit2()
     // ********************************************************* Step 10: load peers
 
     uiInterface.InitMessage(_("<b>Loading addresses...</b>"));
+#ifdef _MSC_VER
+    printf("\nLoading addresses...\n");
+#else
     printf("Loading addresses...\n");
+#endif
     nStart = GetTimeMillis();
 
     {
@@ -860,7 +933,11 @@ bool AppInit2()
     // ********************************************************* Step 12: finished
 
     uiInterface.InitMessage(_("<b>Done loading</b>"));
+#ifdef _MSC_VER
+    printf("Done loading\n\n");
+#else
     printf("Done loading\n");
+#endif
 
     if (!strErrors.str().empty())
         return InitError(strErrors.str());
@@ -877,3 +954,11 @@ bool AppInit2()
 
     return true;
 }
+#ifdef _MSC_VER
+    #pragma warning( pop )
+    //#pragma warning( disable: 4267 )
+    //#pragma warning( disable: 4244 )
+    //#pragma warning( disable: 4390 )
+    //#pragma warning( disable: 4800 )
+    //#pragma warning( disable: 4996 )
+#endif

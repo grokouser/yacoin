@@ -5,13 +5,38 @@
 #ifndef BITCOIN_MAIN_H
 #define BITCOIN_MAIN_H
 
-#include "bignum.h"
-#include "sync.h"
-#include "net.h"
-#include "script.h"
-#include "scrypt_mine.h"
+#ifdef _MSC_VER
+    #include <stdint.h>
+    #define __PRETTY_FUNCTION__ __FUNCTION__
+    //#define __PRETTY_FUNCTION__ __FUNCSIG__
 
-#include <list>
+    #include "net.h"
+    #ifdef H_BITCOIN_SCRIPT
+    #else
+        #include "script.h"
+    #endif
+    #include "scrypt_mine.h"
+
+    #include <set>
+    #include <map>
+
+    #include <limits>
+
+    #pragma warning( push )
+    #pragma warning( disable: 4101 )
+    #pragma warning( disable: 4267 )
+    #pragma warning( disable: 4244 )
+    #pragma warning( disable: 4800 )
+    #pragma warning( disable: 4996 )
+#else
+    #include "bignum.h"
+    #include "sync.h"
+    #include "net.h"
+    #include "script.h"
+    #include "scrypt_mine.h"
+
+    #include <list>
+#endif
 
 class CWallet;
 class CBlock;
@@ -981,7 +1006,11 @@ public:
 //        if (nHeight >= 9689)
         {
             // Take last bit of block hash as entropy bit
+#ifdef _MSC_VER
+            unsigned int nEntropyBit = ((GetHash().Get64()) & 1);
+#else           
             unsigned int nEntropyBit = ((GetHash().Get64()) & 1llu);
+#endif
             if (fDebug && GetBoolArg("-printstakemodifier"))
                 printf("GetStakeEntropyBit: nHeight=%u hashBlock=%s nEntropyBit=%u\n", nHeight, GetHash().ToString().c_str(), nEntropyBit);
             return nEntropyBit;
@@ -1628,5 +1657,12 @@ public:
 };
 
 extern CTxMemPool mempool;
-
+#ifdef _MSC_VER
+    #pragma warning( pop )
+    //#pragma warning( disable: 4101 )
+    //#pragma warning( disable: 4267 )
+    //#pragma warning( disable: 4244 )
+    //#pragma warning( disable: 4800 )
+    //#pragma warning( disable: 4996 )
+#endif
 #endif

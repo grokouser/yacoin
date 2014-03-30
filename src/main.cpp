@@ -3,6 +3,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#ifdef _MSC_VER
+    #include <stdint.h>
+#endif
+
 #include "alert.h"
 #include "checkpoints.h"
 #include "db.h"
@@ -11,9 +15,20 @@
 #include "ui_interface.h"
 #include "kernel.h"
 #include "scrypt_mine.h"
+
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+
+#ifdef _MSC_VER
+    #pragma warning( push )
+    #pragma warning( disable: 4101 )
+    #pragma warning( disable: 4244 )
+    #pragma warning( disable: 4267 )
+    #pragma warning( disable: 4390 )
+    #pragma warning( disable: 4800 )
+    #pragma warning( disable: 4996 )
+#endif
 
 using namespace std;
 using namespace boost;
@@ -3878,14 +3893,26 @@ void SHA256Transform(void* pstate, void* pinput, const void* pinit)
     SHA256_Init(&ctx);
 
     for (int i = 0; i < 16; i++)
+        #ifdef _MSC_VER
+        ((::uint32_t*)data)[i] = ByteReverse(((::uint32_t*)pinput)[i]);
+        #else
         ((uint32_t*)data)[i] = ByteReverse(((uint32_t*)pinput)[i]);
+        #endif
 
     for (int i = 0; i < 8; i++)
+        #ifdef _MSC_VER
+        ctx.h[i] = ((::uint32_t*)pinit)[i];
+        #else
         ctx.h[i] = ((uint32_t*)pinit)[i];
+        #endif
 
     SHA256_Update(&ctx, data, sizeof(data));
     for (int i = 0; i < 8; i++)
+        #ifdef _MSC_VER
+        ((::uint32_t*)pstate)[i] = ctx.h[i];
+        #else
         ((uint32_t*)pstate)[i] = ctx.h[i];
+        #endif
 }
 
 // Some explaining would be appreciated
@@ -4401,9 +4428,7 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
                 CheckWork(pblock.get(), *pwalletMain, reservekey);
                 SetThreadPriority(THREAD_PRIORITY_LOWEST);
             }
-            // sairon: Fast and Furious Proof of Stake Miner
-            bool fFastPOS = GetArg("-fastpos", 0);
-            if (!fFastPOS) Sleep(500);
+            Sleep(500);
             continue;
         }
 
@@ -4579,3 +4604,12 @@ void GenerateBitcoins(bool fGenerate, CWallet* pwallet)
         }
     }
 }
+#ifdef _MSC_VER
+    #pragma warning( pop )
+    //#pragma warning( disable: 4101 )
+    //#pragma warning( disable: 4244 )
+    //#pragma warning( disable: 4267 )
+    //#pragma warning( disable: 4390 )
+    //#pragma warning( disable: 4800 )
+    //#pragma warning( disable: 4996 )
+#endif

@@ -11,9 +11,24 @@
 #include "coincontrol.h" 
 #include "kernel.h"
 
-using namespace std;
-extern int nStakeMaxAge;
+#ifdef _MSC_VER
+    #pragma warning( push )
+    #pragma warning( disable: 4244 )
+    #pragma warning( disable: 4267 )
+    #pragma warning( disable: 4334 )
+    #pragma warning( disable: 4345 )
+    #pragma warning( disable: 4390 )
+    #pragma warning( disable: 4800 )
+    #pragma warning( disable: 4996 )
+#endif
 
+using namespace std;
+
+#ifdef _MSC_VER
+    extern unsigned int nStakeMaxAge;
+#else
+    extern int nStakeMaxAge;
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -1710,7 +1725,7 @@ DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
         return nLoadWalletRet;
     fFirstRunRet = !vchDefaultKey.IsValid();
 
-    NewThread(ThreadFlushWalletDB, &strWalletFile);
+    NewThread(ThreadFlushWalletDB, &strWalletFile);   // only call
     return DB_LOAD_OK;
 }
 
@@ -2199,3 +2214,13 @@ void CWallet::UpdatedTransaction(const uint256 &hashTx)
             NotifyTransactionChanged(this, hashTx, CT_UPDATED);
     }
 }
+#ifdef _MSC_VER
+    #pragma warning( pop )
+    //#pragma warning( disable: 4244 )
+    //#pragma warning( disable: 4267 )
+    //#pragma warning( disable: 4334 )
+    //#pragma warning( disable: 4345 )
+    //#pragma warning( disable: 4390 )
+    //#pragma warning( disable: 4800 )
+    //#pragma warning( disable: 4996 )
+#endif

@@ -18,6 +18,14 @@
 #include "util.h"
 #include "walletdb.h"
 
+#ifdef _MSC_VER
+    #pragma warning( push )
+    #pragma warning( disable: 4996 )
+    #pragma warning( disable: 4267 )
+    #pragma warning( disable: 4244 )
+    #pragma warning( disable: 4800 )
+#endif
+
 extern bool fWalletUnlockMintOnly;
 class CAccountingEntry;
 class CWalletTx;
@@ -853,5 +861,11 @@ private:
 };
 
 bool GetWalletFile(CWallet* pwallet, std::string &strWalletFileOut);
-
+#ifdef _MSC_VER
+    #pragma warning( pop )
+    //#pragma warning( disable: 4996 )
+    //#pragma warning( disable: 4267 )
+    //#pragma warning( disable: 4244 )
+    //#pragma warning( disable: 4800 )
+#endif
 #endif
