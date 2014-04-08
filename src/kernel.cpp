@@ -2,6 +2,12 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#ifdef _MSC_VER
+    #include <stdint.h>
+
+    #include "msvc_warnings.push.h"
+#endif
+
 #include <boost/assign/list_of.hpp>
 
 #include "kernel.h"
@@ -9,8 +15,11 @@
 
 using namespace std;
 
+#ifdef _MSC_VER
+#else
 extern int nStakeMaxAge;
 extern int nStakeTargetSpacing;
+#endif
 
 // Modifier interval: time to elapse before new modifier is computed
 // Set to 6-hour for production network and 20-minute for test network
@@ -20,6 +29,28 @@ unsigned int nModifierInterval = MODIFIER_INTERVAL;
 static std::map<int, unsigned int> mapStakeModifierCheckpoints =
     boost::assign::map_list_of
     ( 0, 0x0e00670b )
+    ( 15000, 0x085e9caf )
+    ( 30000, 0x3f123e2c )
+    ( 45000, 0x3e2ecf4f )
+    ( 60000, 0x1e8458ea )
+    ( 75000, 0xd72d1395 )
+    ( 90000, 0x7dce92ff )
+    (105000, 0x57cc71e0 )
+    (120000, 0x4442fccb )
+    (135000, 0x4cea240f )
+    (150000, 0xd06bea80 )
+    (165000, 0x697caae6 )
+    (180000, 0x5d6f2627 )
+    (195000, 0x054b2756 )
+    (214998, 0xcbb62f73 )
+    (236895, 0x05ee6bd6 )
+    (259405, 0xb31abd61 )
+    (281002, 0x95174906 )
+    (303953, 0x4ba15dbc )
+    (388314, 0x97f8e820 )
+    (420000, 0x9b6c9d80 )
+    (465000, 0x1b1a219c )
+    (487658, 0xe7d5a3bc )
     ;
 
 // Get the last stake modifier and its generation time from a given block
@@ -392,3 +423,6 @@ bool CheckStakeModifierCheckpoints(int nHeight, unsigned int nStakeModifierCheck
         return nStakeModifierChecksum == mapStakeModifierCheckpoints[nHeight];
     return true;
 }
+#ifdef _MSC_VER
+    #include "msvc_warnings.pop.h"
+#endif
