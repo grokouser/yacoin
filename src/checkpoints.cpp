@@ -2,6 +2,20 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#ifdef _MSC_VER
+    #include <stdint.h>
+
+    #include "msvc_warnings.push.h"
+
+    #include "checkpoints.h"
+
+    #include "main.h"
+    #include "uint256.h"
+    #include "db.h"                     // for CTxDB
+
+    #include <boost/assign/list_of.hpp> // for 'map_list_of()'
+    #include <boost/foreach.hpp>
+#else
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
 #include <boost/foreach.hpp>
 
@@ -10,6 +24,7 @@
 #include "db.h"
 #include "main.h"
 #include "uint256.h"
+#endif
 
 namespace Checkpoints
 {
@@ -47,6 +62,8 @@ namespace Checkpoints
         ( 420000, uint256("0x000000368f2f40e3d2d9ed2a2220c8a424e3d80871c0b72c2bdeea35863aa779"))
         ( 465000, uint256("0x0000000826f7b8b504fde92ba0388b647b2179d4b2c7cdfd232505cd7d79ac61"))
         ( 487658, uint256("0x00000008dee4518a08084c5b65d647a57faf7ff28bc7d8786719ac13d21356d4"))
+        ( 550177, uint256("0x000000087d507052cb66d5a3770cf62f8ff9196ab861ffec3452d939b818567b"))
+        ( 612177, uint256("0x0000004bc02ebb045398fd8cdb249b790892a4fa3a8b03dbbbf5743c53f2a508"))
         ;
 
     static MapCheckpoints mapCheckpointsTestnet =
@@ -229,7 +246,18 @@ namespace Checkpoints
 
         LOCK(cs_hashSyncCheckpoint);
         // sync-checkpoint should always be accepted block
+#ifdef _MSC_VER
+        bool
+            fTest = (mapBlockIndex.count(hashSyncCheckpoint));
+    #ifdef _DEBUG
+        assert(fTest);
+    #else
+        if( !fTest )
+            releaseModeAssertionfailure( __FILE__, __LINE__, __PRETTY_FUNCTION__ );
+    #endif
+#else
         assert(mapBlockIndex.count(hashSyncCheckpoint));
+#endif
         const CBlockIndex* pindexSync = mapBlockIndex[hashSyncCheckpoint];
 
         if (nHeight > pindexSync->nHeight)
@@ -367,7 +395,18 @@ namespace Checkpoints
     {
         LOCK(cs_hashSyncCheckpoint);
         // sync-checkpoint should always be accepted block
+#ifdef _MSC_VER
+        bool
+            fTest = (mapBlockIndex.count(hashSyncCheckpoint));
+    #ifdef _DEBUG
+        assert(fTest);
+    #else
+        if( !fTest )
+            releaseModeAssertionfailure( __FILE__, __LINE__, __PRETTY_FUNCTION__ );
+    #endif
+#else
         assert(mapBlockIndex.count(hashSyncCheckpoint));
+#endif
         const CBlockIndex* pindexSync = mapBlockIndex[hashSyncCheckpoint];
         return (nBestHeight >= pindexSync->nHeight + nCoinbaseMaturity ||
                 pindexSync->GetBlockTime() + nStakeMinAge < GetAdjustedTime());
@@ -463,3 +502,6 @@ bool CSyncCheckpoint::ProcessSyncCheckpoint(CNode* pfrom)
     printf("ProcessSyncCheckpoint: sync-checkpoint at %s\n", hashCheckpoint.ToString().c_str());
     return true;
 }
+#ifdef _MSC_VER
+    #include "msvc_warnings.pop.h"
+#endif
